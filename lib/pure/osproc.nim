@@ -440,15 +440,17 @@ when defined(Windows) and not defined(useNimRtl):
                        DUPLICATE_SAME_ACCESS) == 0:
       raiseOSError(osLastError())
 
+  var counter: int
+
   proc createAllPipeHandles(si: var STARTUPINFO;
-                            stdin, stdout, stderr: var Handle;
-                            hash: int) =
+                            stdin, stdout, stderr: var Handle) =
     var sa: SECURITY_ATTRIBUTES
     sa.nLength = sizeof(SECURITY_ATTRIBUTES).cint
     sa.lpSecurityDescriptor = nil
     sa.bInheritHandle = 1
-    let pipeOutName = newWideCString(r"\\.\pipe\stdout" & $hash)
-    let pipeInName = newWideCString(r"\\.\pipe\stdin" & $hash)
+    atomicInc(counter)
+    let pipeOutName = newWideCString(r"\\.\pipe\stdout" & $counter)
+    let pipeInName = newWideCString(r"\\.\pipe\stdin" & $counter)
     let pipeOut = createNamedPipe(pipeOutName,
       dwOpenMode=PIPE_ACCESS_INBOUND or FILE_FLAG_WRITE_THROUGH,
       dwPipeMode=PIPE_NOWAIT,
@@ -525,7 +527,7 @@ when defined(Windows) and not defined(useNimRtl):
         else:
           createPipeHandles(he, si.hStdError)
       else:
-        createAllPipeHandles(si, hi, ho, he, cast[int](result))
+        createAllPipeHandles(si, hi, ho, he)
       result.inHandle = FileHandle(hi)
       result.outHandle = FileHandle(ho)
       result.errHandle = FileHandle(he)
